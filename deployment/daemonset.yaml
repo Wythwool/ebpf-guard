@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: ebpf-guard
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels: { app: ebpf-guard }
+  template:
+    metadata:
+      labels: { app: ebpf-guard }
+    spec:
+      hostPID: true
+      containers:
+      - name: agent
+        image: ghcr.io/you/ebpf-guard:latest
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - { name: sys, mountPath: /sys, readOnly: true }
+        - { name: modules, mountPath: /lib/modules, readOnly: true }
+        - { name: rules, mountPath: /etc/ebpf-guard }
+        args: ["--rules", "/etc/ebpf-guard/default_rules.yaml", "--addr", ":9100"]
+        ports: [{ containerPort: 9100, name: metrics }]
+      volumes:
+      - { name: sys, hostPath: { path: /sys } }
+      - { name: modules, hostPath: { path: /lib/modules } }
+      - { name: rules, configMap: { name: ebpf-guard-rules } }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: { name: ebpf-guard-rules, namespace: kube-system }
+data:
+  default_rules.yaml: |
+    - id: E1
+      name: Shell from system service
+      type: exec
+      proc_comm_re: '^(cron|sshd|systemd|nginx)$'
+      path_re: '(^|/)(bash|sh|zsh)$'
+    
+    - id: E2
+      name: Fileless exec (deleted/memfd)
+      type: exec
+      path_re: '(memfd:|\(deleted\))'
+    
+    - id: E3
+      name: Exec from temp/hidden
+      type: exec
+      path_re: '(^/tmp/|/\.)'
+    
+    - id: O1
+      name: Sensitive file read
+      type: open
+      path_re: '^/(etc/(shadow|passwd)|root/|var/log/secure)'
+    
+    - id: O2
+      name: Scripts in /tmp
+      type: open
+      path_re: '^/tmp/.*\.(sh|py|pl)$'
+    
+    - id: C1
+      name: Mining port connect
+      type: connect
+      port_in: [3333, 4444, 5555, 6666]
+    
+    - id: C2
+      name: Outbound to public suspicious range
+      type: connect
+      ip_re: '^(?!10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)'
+    
+    - id: C3
+      name: Localhost weird high port
+      type: connect
+      ip_re: '^127\.'
+      port_in: [4444, 5555, 6666, 31337]
+    
+    - id: A1
+      name: Busybox suspicious
+      type: exec
+      proc_comm_re: '^busybox$'
+      path_re: '(wget|nc|telnet|sh)'
+    
+    - id: A2
+      name: Curl | Wget piping to shell
+      type: open
+      path_re: '/(curl|wget).+\|\s*(bash|sh)'
+    
