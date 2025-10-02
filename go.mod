@@ -1,4 +1,4 @@
-module github.com/you/ebpf-guard
+module github.com/wythwool/ebpf-guard
 
 go 1.22
 
