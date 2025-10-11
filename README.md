@@ -32,7 +32,3 @@ kubectl apply -f deployment/daemonset.yaml
 
 ## Rules
 YAML with small DSL: match by `proc_comm`, `path_re`, `argv_re`, `port_in`, `ip_re`, `uid_in`. See `rules/default_rules.yaml`.
-
-## Notes
-- Keep comments sparse, code human. BPF is CO‑RE and loads on modern kernels.
-- Only essential checks; extend with LSM/ret probes if нужно.
