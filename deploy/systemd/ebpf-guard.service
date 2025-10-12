@@ -1,0 +1,13 @@
+[Unit]
+Description=ebpf-guard
+After=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/ebpf-guard -prom -json -rules /etc/ebpf-guard/rules.yaml
+Restart=always
+AmbientCapabilities=CAP_BPF CAP_NET_ADMIN CAP_SYS_ADMIN CAP_PERFMON
+CapabilityBoundingSet=CAP_BPF CAP_NET_ADMIN CAP_SYS_ADMIN CAP_PERFMON
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,18 @@
+- name: "block_netcat"
+  match:
+    comm_re: "^nc$"
+    port_in: [4444, 5555]
+  action: deny
+  reason: "nc to forbidden ports"
+
+- name: "alert_sensitive_open"
+  match:
+    path_re: "^/etc/(shadow|passwd)$"
+    uid_in: [0]
+  action: alert
+  reason: "root reading sensitive file"
+
+- name: "allow_package_mgr"
+  match:
+    comm_re: "^(apt|dnf|yum|pacman)$"
+  action: allow

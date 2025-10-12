@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: ebpf-guard
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels: { app: ebpf-guard }
+  template:
+    metadata:
+      labels: { app: ebpf-guard }
+    spec:
+      hostPID: true
+      hostNetwork: true
+      containers:
+      - name: ebpf-guard
+        image: ebpf-guard:latest
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - { name: sys, mountPath: /sys, readOnly: true }
+        - { name: modules, mountPath: /lib/modules, readOnly: true }
+        - { name: bpf, mountPath: /sys/fs/bpf }
+        ports:
+        - { containerPort: 9108, name: metrics }
+      volumes:
+      - { name: sys, hostPath: { path: /sys } }
+      - { name: modules, hostPath: { path: /lib/modules } }
+      - { name: bpf, hostPath: { path: /sys/fs/bpf } }
